@@ -1,0 +1,16 @@
+﻿{% extends 'base.html' %}
+{% block title %}Movimentar Estoque - TechStock{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-8"><div class="card shadow-sm border-0"><div class="card-body p-4">
+<h1 class="h3 mb-4">Nova movimentaÃ§Ã£o</h1>
+<form method="post">
+<div class="row g-3">
+<div class="col-12"><label class="form-label">Produto *</label><select class="form-select" name="produto_id" required><option value="">Selecione um produto</option>{% for produto in produtos %}<option value="{{ produto.id }}"{% if dados.produto_id|string == produto.id|string %} selected{% endif %}>{{ produto.sku }} - {{ produto.nome }} - saldo atual: {{ produto.estoque_atual }}</option>{% endfor %}</select></div>
+<div class="col-md-5"><label class="form-label">Tipo *</label><select class="form-select" name="tipo" required><option value="">Selecione</option><option value="ENTRADA"{% if dados.tipo == 'ENTRADA' %} selected{% endif %}>ENTRADA</option><option value="SAIDA"{% if dados.tipo == 'SAIDA' %} selected{% endif %}>SAÃDA</option></select></div>
+<div class="col-md-4"><label class="form-label">Quantidade *</label><input class="form-control" type="number" min="1" step="1" name="quantidade" value="{{ dados.quantidade or '' }}" required></div>
+<div class="col-12"><label class="form-label">ObservaÃ§Ã£o</label><textarea class="form-control" name="observacao" rows="3">{{ dados.observacao or '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4"><button class="btn btn-primary">Registrar movimentaÃ§Ã£o</button><a href="{{ url_for('historico_movimentacoes.historico_movimentacoes') }}" class="btn btn-outline-secondary">Ver histÃ³rico</a></div>
+</form></div></div></div></div>
+{% endblock %}
+

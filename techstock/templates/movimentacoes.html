@@ -1,0 +1,9 @@
+﻿{% extends 'base.html' %}
+{% block title %}HistÃ³rico - TechStock{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3"><h1 class="h3 mb-0">Livro-razÃ£o de movimentaÃ§Ãµes</h1><a href="{{ url_for('nova_movimentacao.nova_movimentacao') }}" class="btn btn-primary">Nova movimentaÃ§Ã£o</a></div>
+<div class="card shadow-sm border-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-dark"><tr><th>Data / Hora</th><th>Produto</th><th>Tipo</th><th>Quantidade</th><th>ObservaÃ§Ã£o</th></tr></thead><tbody>
+{% for movimento in movimentacoes %}<tr><td>{{ movimento.data_formatada }}</td><td><strong>{{ movimento.sku }}</strong><br>{{ movimento.produto_nome }}</td><td>{% if movimento.tipo == 'ENTRADA' %}<span class="badge bg-success">ENTRADA</span>{% else %}<span class="badge bg-danger">SAÃDA</span>{% endif %}</td><td>{{ movimento.quantidade }}</td><td>{{ movimento.observacao or '-' }}</td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-4">Nenhuma movimentaÃ§Ã£o registrada.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}
+

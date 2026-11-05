@@ -1,0 +1,11 @@
+﻿{% extends 'base.html' %}
+{% block title %}PÃ¡gina nÃ£o encontrada - TechStock{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <i class="bi bi-search display-1 text-secondary"></i>
+  <h1 class="mt-3">404 - PÃ¡gina nÃ£o encontrada</h1>
+  <p class="text-muted">O recurso solicitado nÃ£o existe ou foi removido.</p>
+  <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary">Voltar ao dashboard</a>
+</div>
+{% endblock %}
+

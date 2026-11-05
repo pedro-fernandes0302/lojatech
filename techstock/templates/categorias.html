@@ -1,0 +1,7 @@
+﻿{% extends 'base.html' %}
+{% block title %}Categorias - TechStock{% endblock %}
+{% block content %}
+<div class="row g-4"><div class="col-lg-4"><div class="card shadow-sm border-0"><div class="card-body"><h1 class="h4">Nova categoria</h1><form method="post"><label class="form-label">Nome da categoria *</label><input class="form-control" name="nome" required><button class="btn btn-primary mt-3">Cadastrar</button></form></div></div></div>
+<div class="col-lg-8"><div class="card shadow-sm border-0"><div class="card-header bg-white"><h2 class="h5 mb-0">Categorias cadastradas</h2></div><div class="table-responsive"><table class="table table-hover mb-0"><thead class="table-light"><tr><th>Nome</th><th class="text-end">AÃ§Ã£o</th></tr></thead><tbody>{% for categoria in categorias %}<tr><td>{{ categoria.nome }}</td><td class="text-end"><form method="post" action="{{ url_for('excluir_categoria.excluir_categoria', id=categoria.id) }}" onsubmit="return confirm('Excluir esta categoria?')"><button class="btn btn-sm btn-outline-danger">Excluir</button></form></td></tr>{% else %}<tr><td colspan="2" class="text-muted text-center">Nenhuma categoria.</td></tr>{% endfor %}</tbody></table></div></div></div></div>
+{% endblock %}
+
