@@ -88,12 +88,14 @@ def criar_fornecedor_api():
     dados = request.get_json(silent=True) or {}
     razao = str(dados.get("razao_social", "")).strip()
     cnpj = "".join(c for c in str(dados.get("cnpj", "")) if c.isdigit())
-    if not razao or len(cnpj) != 14:
-        return erro("Informe a razão social e um CNPJ válido com 14 dígitos.")
+    telefone = str(dados.get("telefone", "")).strip()
+    email = str(dados.get("email", "")).strip()
+    if not razao or len(cnpj) != 14 or not telefone or not email:
+        return erro("Informe razão social, CNPJ válido, telefone e e-mail.")
     conn = get_db()
     try:
         conn.execute("INSERT INTO fornecedor (razao_social, cnpj, telefone, email) VALUES (?, ?, ?, ?)",
-                     (razao, cnpj, dados.get("telefone") or None, dados.get("email") or None))
+                     (razao, cnpj, telefone, email))
         conn.commit()
         return jsonify({"mensagem": "Fornecedor cadastrado com sucesso."}), 201
     except sqlite3.IntegrityError:
@@ -138,27 +140,65 @@ def criar_produto_api():
     obrigatorios = ("sku", "nome", "fabricante", "tipo", "preco", "localizacao", "categoria_id", "fornecedor_id")
     if any(not str(d.get(c, "")).strip() for c in obrigatorios):
         return erro("Preencha todos os campos obrigatórios.")
+
+    preco_texto = str(d["preco"]).strip().replace(" ", "")
+    if "," in preco_texto:
+        preco_texto = preco_texto.replace(".", "").replace(",", ".")
     try:
-        preco = float(str(d["preco"]).replace(".", "").replace(",", "."))
+        preco = float(preco_texto)
         estoque = int(d.get("estoque_atual", 0))
         minimo = int(d.get("estoque_minimo", 0))
     except (ValueError, TypeError):
         return erro("Preço ou estoques possuem valor inválido.")
     if preco <= 0 or estoque < 0 or minimo < 0:
         return erro("Preço deve ser positivo e estoques não podem ser negativos.")
+
+    tipo_original = str(d["tipo"]).strip()
+    tipos = {"Hardware": "Hardware", "Software": "Software", "Periférico": "Periferico", "Periferico": "Periferico"}
+    tipo = tipos.get(tipo_original)
+    if not tipo:
+        return erro("Tipo de produto inválido.")
+
+    modalidades = {
+        "Assinatura Anual": "Assinatura anual",
+        "Assinatura anual": "Assinatura anual",
+        "Perpétua/ESD": "Perpétua/ESD",
+        "OEM": "OEM",
+    }
+    modalidade = str(d.get("modalidade_licenca") or "").strip()
+    if modalidade:
+        modalidade = modalidades.get(modalidade)
+        if not modalidade:
+            return erro("Modalidade de licença inválida.")
+
+    especificacao = str(d.get("especificacao") or "").strip()
+    if tipo != "Software":
+        modalidade = None
+
     conn = get_db()
     try:
+        sku = str(d["sku"]).strip()
+        if conn.execute("SELECT 1 FROM produtos WHERE sku = ?", (sku,)).fetchone():
+            return erro("Já existe um produto cadastrado com esse SKU.")
+        if not conn.execute("SELECT 1 FROM categoria WHERE id_categoria = ?", (d["categoria_id"],)).fetchone():
+            return erro("Categoria inválida.")
+        if not conn.execute("SELECT 1 FROM fornecedor WHERE id_fornecedor = ?", (d["fornecedor_id"],)).fetchone():
+            return erro("Fornecedor inválido.")
+
         conn.execute("""INSERT INTO produtos (sku,nome_produto,fabricante,tipo,especificacao,modalidade,preco,
                        estoque_atual,estoque_minimo,localizacao,id_categoria,id_fornecedor)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                     (d["sku"].strip(), d["nome"].strip(), d["fabricante"].strip(), d["tipo"],
-                      d.get("especificacao") or None, d.get("modalidade_licenca") or None, preco,
-                      estoque, minimo, d["localizacao"].strip(), d["categoria_id"], d["fornecedor_id"]))
+                     (sku, d["nome"].strip(), d["fabricante"].strip(), tipo,
+                      especificacao, modalidade, preco, estoque, minimo, d["localizacao"].strip(),
+                      d["categoria_id"], d["fornecedor_id"]))
         conn.commit()
         return jsonify({"mensagem": "Produto cadastrado com sucesso."}), 201
-    except sqlite3.IntegrityError:
+    except sqlite3.IntegrityError as exc:
         conn.rollback()
-        return erro("Não foi possível cadastrar: SKU já existente ou categoria/fornecedor inválido.")
+        mensagem = str(exc)
+        if "sku" in mensagem.lower():
+            return erro("Já existe um produto cadastrado com esse SKU.")
+        return erro("Não foi possível cadastrar o produto: dados inválidos ou fora das regras do banco.")
     finally:
         conn.close()
 
