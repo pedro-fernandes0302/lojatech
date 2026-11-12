@@ -37,3 +37,21 @@ def ensure_database():
             conn.close()
     if precisa_inicializar:
         init_db()
+
+    conn = get_db()
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome_completo TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                senha_hash TEXT NOT NULL,
+                perfil_acesso TEXT NOT NULL DEFAULT 'OPERADOR'
+                    CHECK (perfil_acesso IN ('OPERADOR', 'GERENTE')),
+                status TEXT NOT NULL DEFAULT 'ATIVO'
+                    CHECK (status IN ('ATIVO', 'INATIVO'))
+            )
+        """)
+        conn.commit()
+    finally:
+        conn.close()

@@ -1,1 +1,56 @@
-﻿:root{font-family:Inter,Segoe UI,Arial,sans-serif;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;background:#f4f6fb;color:#172033}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-width:320px;min-height:100vh}button,input{font-family:inherit}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid rgba(91,92,226,.25);outline-offset:2px}#root{min-height:100vh}
+:root {
+  font-family: "Segoe UI", Inter, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  --pitaya: #c52b70;
+  --pitaya-dark: #a51f5b;
+  --pitaya-soft: #fff0f6;
+  --magenta: #de4789;
+  --plum: #211620;
+  --ink: #29232a;
+  --muted: #817781;
+  --line: #eee7eb;
+  --surface: #fff;
+  --canvas: #faf8fa;
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgb(197 43 112 / 28%);
+  outline-offset: 2px;
+}
+
+#root {
+  min-height: 100vh;
+}

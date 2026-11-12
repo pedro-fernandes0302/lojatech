@@ -1,6 +1,8 @@
 ﻿import os
+import secrets
 from flask import Flask
 from db import ensure_database
+from routers.auth import bp as auth_bp
 from routers.dashboard import bp as dashboard_bp
 from routers.novo_produto import bp as novo_produto_bp
 from routers.excluir_produto import bp as excluir_produto_bp
@@ -12,10 +14,17 @@ from routers.fornecedores import bp as fornecedores_bp
 from routers.excluir_fornecedor import bp as excluir_fornecedor_bp
 from routers.errors import bp as errors_bp
 from routers.api import bp as api_bp
+from routers.permissions import proteger_rotas_api
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("TECHSTOCK_SECRET_KEY", "techstock-desenvolvimento-local")
+app.secret_key = os.environ.get("TECHSTOCK_SECRET_KEY") or secrets.token_hex(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("TECHSTOCK_COOKIE_SECURE") == "1",
+)
 ensure_database()
+app.before_request(proteger_rotas_api)
 
 @app.template_filter("brl")
 def formatar_brl(valor):
@@ -37,6 +46,7 @@ app.register_blueprint(fornecedores_bp)
 app.register_blueprint(excluir_fornecedor_bp)
 app.register_blueprint(errors_bp)
 app.register_blueprint(api_bp)
+app.register_blueprint(auth_bp)
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -29,6 +29,15 @@ Acesse http://127.0.0.1:5000.
 
 As rotas estão separadas na pasta `routers`. O arquivo `app.py` cria a aplicação e registra os Blueprints.
 
+## API de autenticacao e permissoes
+
+- `POST /api/auth/registrar` cria uma conta publica com perfil `OPERADOR`.
+- `POST /api/auth/login` inicia uma sessao; `GET /api/auth/me` retorna o usuario autenticado.
+- `POST /api/auth/logout` encerra a sessao.
+- Senhas sao armazenadas com hash. As rotas protegidas usam sessao Flask em cookie.
+- `routers/permissions.py` define as permissoes: OPERADOR consulta dados e registra movimentacoes; GERENTE tambem cadastra e exclui produtos, categorias e fornecedores.
+- Configure `TECHSTOCK_SECRET_KEY` com um segredo persistente no ambiente. Em HTTPS, defina `TECHSTOCK_COOKIE_SECURE=1`.
+
 ## Banco de dados
 
 Na primeira execuÃ§Ã£o, `techstock.db` Ã© criado automaticamente se nÃ£o existir. Para recriar manualmente, primeiro exclua o arquivo `techstock.db` e execute `python app.py` ou `python -c "from db import init_db; init_db()"`.
@@ -79,4 +88,3 @@ python -c "from db import init_db; init_db()"
 ```
 
 A execuÃ§Ã£o automÃ¡tica recria o banco na inicializaÃ§Ã£o e pode ser interrompida com Ctrl+C.
-

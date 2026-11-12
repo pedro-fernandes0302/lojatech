@@ -4,6 +4,7 @@ export interface Produto {
   estoque_minimo: number; localizacao: string; modalidade_licenca: string | null;
 }
 export interface DashboardResponse { produtos: Produto[]; categorias: number; fornecedores: number }
+export interface Usuario { id: number; nome: string; email: string; perfil: 'OPERADOR' | 'GERENTE' }
 export interface Categoria { id: number; nome: string }
 export interface Fornecedor { id: number; razao_social: string; cnpj: string; telefone?: string; email?: string }
 export interface OpcaoProduto { id: number; sku: string; nome: string; estoque_atual: number }
