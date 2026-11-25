@@ -80,8 +80,14 @@ ativadas em cada conexão.
 Venda é executada em `BEGIN IMMEDIATE`: o bloqueio de escrita serializa as
 baixas concorrentes, e qualquer falta de saldo ou erro antes do `COMMIT`
 provoca `ROLLBACK` explícito do cabeçalho, itens, estoque, licenças e
-movimentações. Valores de venda são centavos inteiros. `movimentacoes` é um
-Livro-Razão append-only, protegido por triggers de UPDATE e DELETE.
+movimentações. Valores de venda são centavos inteiros. Triggers protegem o
+Livro-Razão, os itens e as vendas contra alterações e impedem mudar o total
+depois de fechado. Recibos de Operador são privados ao autor; Gerentes podem
+consultar todos.
+
+Se o startup detectar um banco parcialmente criado ou sem triggers esperados,
+ele interrompe com erro em vez de apagar conteúdo. Faça backup e remova o banco
+manualmente apenas se quiser recriar os dados de demonstração.
 
 ## Testes
 

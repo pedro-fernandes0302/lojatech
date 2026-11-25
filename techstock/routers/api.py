@@ -18,6 +18,14 @@ def erro(mensagem, codigo=400):
     return jsonify({"erro": mensagem}), codigo
 
 
+def inteiro_estrito(valor):
+    if isinstance(valor, bool) or (isinstance(valor, float) and not valor.is_integer()):
+        raise ValueError("Esperado um número inteiro.")
+    if isinstance(valor, str) and not valor.strip().isdigit():
+        raise ValueError("Esperado um número inteiro.")
+    return int(valor)
+
+
 @bp.get("/sessao")
 def sessao_api():
     return jsonify({
@@ -262,7 +270,8 @@ def listar_movimentacoes_api():
 def criar_movimentacao_api():
     dados = request.get_json(silent=True) or {}
     try:
-        produto_id, quantidade = int(dados["produto_id"]), int(dados["quantidade"])
+        produto_id = inteiro_estrito(dados["produto_id"])
+        quantidade = inteiro_estrito(dados["quantidade"])
     except (KeyError, TypeError, ValueError):
         return erro("Produto e quantidade devem ser válidos.")
     if quantidade <= 0 or dados.get("tipo") not in ("ENTRADA", "SAIDA"):
@@ -270,10 +279,16 @@ def criar_movimentacao_api():
     conn = get_db()
     try:
         conn.execute("BEGIN IMMEDIATE")
-        produto = conn.execute("SELECT estoque_atual, estoque_minimo FROM produtos WHERE id_produto = ?", (produto_id,)).fetchone()
+        produto = conn.execute(
+            "SELECT estoque_atual, estoque_minimo, tipo FROM produtos WHERE id_produto = ?",
+            (produto_id,),
+        ).fetchone()
         if not produto:
             conn.rollback()
             return erro("Produto não encontrado.", 404)
+        if produto["tipo"] == "Software":
+            conn.rollback()
+            return erro("Licença digital só movimenta por venda ou cadastro de chaves.", 409)
         incremento = quantidade if dados["tipo"] == "ENTRADA" else -quantidade
         cursor = conn.execute(
             "UPDATE produtos SET estoque_atual = estoque_atual + ? WHERE id_produto = ? AND estoque_atual + ? >= 0",
@@ -311,13 +326,14 @@ def listar_clientes_api():
 def criar_venda_api():
     dados = request.get_json(silent=True) or {}
     try:
-        cliente_id = int(dados["id_cliente"])
+        cliente_id = inteiro_estrito(dados["id_cliente"])
         itens_recebidos = dados["itens"]
         if not isinstance(itens_recebidos, list) or not itens_recebidos:
             return erro("A venda precisa conter ao menos um item.")
         quantidades = {}
         for item in itens_recebidos:
-            produto_id, quantidade = int(item["id_produto"]), int(item["quantidade"])
+            produto_id = inteiro_estrito(item["id_produto"])
+            quantidade = inteiro_estrito(item["quantidade"])
             if quantidade <= 0:
                 return erro("A quantidade de cada item deve ser maior que zero.")
             quantidades[produto_id] = quantidades.get(produto_id, 0) + quantidade
@@ -409,7 +425,7 @@ def criar_venda_api():
 
 def _dados_recibo(conn, venda_id):
     venda = conn.execute("""
-        SELECT v.id_venda, v.numero_pedido, v.data_venda, v.valor_total_centavos,
+        SELECT v.id_venda, v.id_usuario, v.numero_pedido, v.data_venda, v.valor_total_centavos,
                c.nome AS cliente_nome, c.cnpj AS cliente_cnpj, c.email AS cliente_email,
                u.nome AS operador, u.email AS operador_email
         FROM vendas v JOIN clientes c ON c.id_cliente = v.id_cliente
@@ -436,6 +452,8 @@ def recibo_venda_api(id):
         recibo = _dados_recibo(conn, id)
         if not recibo:
             return erro("Venda não encontrada.", 404)
+        if session["perfil"] != "GERENTE" and recibo["id_usuario"] != session["id_usuario"]:
+            return erro("Você não pode consultar o recibo desta venda.", 403)
         return jsonify(recibo)
     finally:
         conn.close()
@@ -448,6 +466,8 @@ def recibo_venda_html(id):
         recibo = _dados_recibo(conn, id)
         if not recibo:
             return "Venda não encontrada.", 404
+        if session["perfil"] != "GERENTE" and recibo["id_usuario"] != session["id_usuario"]:
+            return "Você não pode consultar o recibo desta venda.", 403
         return render_template("recibo.html", recibo=recibo)
     finally:
         conn.close()
@@ -482,6 +502,8 @@ def atualizar_perfil_api(id):
     perfil = str(dados.get("perfil", "")).upper()
     if perfil not in {"GERENTE", "OPERADOR"}:
         return erro("Perfil deve ser GERENTE ou OPERADOR.")
+    if id == session["id_usuario"] and perfil != "GERENTE":
+        return erro("Você não pode rebaixar o próprio perfil.", 409)
     conn = get_db()
     try:
         cursor = conn.execute("UPDATE usuarios SET perfil = ? WHERE id_usuario = ?", (perfil, id))

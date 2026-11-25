@@ -62,12 +62,37 @@ class TechStockTests(unittest.TestCase):
                 "ativos_digitais", "estoque_fisico", "clientes", "vendas", "itens_venda",
                 "movimentacoes_sem_update", "movimentacoes_sem_delete",
             }.issubset(objetos))
+            gatilhos = {row["name"] for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='trigger'"
+            )}
+            self.assertTrue({
+                "itens_venda_sem_update", "itens_venda_sem_delete",
+                "vendas_sem_delete", "vendas_total_imutavel",
+            }.issubset(gatilhos))
             self.assertEqual(objetos["estoque_fisico"], "view")
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0], 2)
             self.assertEqual(conn.execute("SELECT perfil FROM usuarios WHERE email = 'gerente@techstore.com'").fetchone()[0], "GERENTE")
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM ativos_digitais").fetchone()[0], 3)
         finally:
             conn.close()
+
+    def test_ensure_database_preserva_banco_parcial(self):
+        anterior = db.DATABASE
+        parcial = os.path.join(self.temp.name, "parcial.db")
+        try:
+            db.DATABASE = parcial
+            conn = sqlite3.connect(parcial)
+            conn.execute("CREATE TABLE produtos (id_produto INTEGER PRIMARY KEY, marcador TEXT)")
+            conn.execute("INSERT INTO produtos VALUES (1, 'preservar')")
+            conn.commit()
+            conn.close()
+            with self.assertRaisesRegex(RuntimeError, "Banco existente está incompleto"):
+                db.ensure_database()
+            conn = sqlite3.connect(parcial)
+            self.assertEqual(conn.execute("SELECT marcador FROM produtos").fetchone()[0], "preservar")
+            conn.close()
+        finally:
+            db.DATABASE = anterior
 
     def test_venda_ok(self):
         resposta = self.cliente().post("/api/vendas", json={
@@ -186,6 +211,71 @@ class TechStockTests(unittest.TestCase):
             conn.rollback()
         finally:
             conn.close()
+
+    def test_venda_e_itens_imutaveis(self):
+        response = self.cliente().post("/api/vendas", json={
+            "id_cliente": 1, "itens": [{"id_produto": 1, "quantidade": 1}],
+        })
+        self.assertEqual(response.status_code, 201)
+        venda_id = response.json["id_venda"]
+        conn = db.get_db()
+        try:
+            for sql, args in (
+                ("UPDATE itens_venda SET quantidade=2 WHERE id_venda=?", (venda_id,)),
+                ("DELETE FROM itens_venda WHERE id_venda=?", (venda_id,)),
+                ("DELETE FROM vendas WHERE id_venda=?", (venda_id,)),
+                ("UPDATE vendas SET valor_total_centavos=1 WHERE id_venda=?", (venda_id,)),
+            ):
+                with self.assertRaises(sqlite3.IntegrityError):
+                    conn.execute(sql, args)
+                conn.rollback()
+        finally:
+            conn.close()
+
+    def test_perfil_atualizado_revoga_sessao_antiga(self):
+        conn = db.get_db()
+        try:
+            conn.execute("UPDATE usuarios SET perfil='OPERADOR' WHERE id_usuario=1")
+            conn.commit()
+        finally:
+            conn.close()
+        response = self.cliente(GERENTE).post("/api/categorias", json={"nome": "Bloqueada"})
+        self.assertEqual(response.status_code, 403)
+
+    def test_recibo_privado_e_perfil_sem_auto_promocao(self):
+        venda = self.cliente().post("/api/vendas", json={
+            "id_cliente": 1, "itens": [{"id_produto": 1, "quantidade": 1}],
+        })
+        outro = self.cliente()
+        cadastro = outro.post("/api/cadastro", json={
+            "nome": "Outro operador", "email": "outro@techstore.com", "senha": "senha-segura-123",
+        })
+        self.assertEqual(cadastro.status_code, 201)
+        login = outro.post("/api/login", json={
+            "email": "outro@techstore.com", "senha": "senha-segura-123",
+        })
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(outro.get(f"/api/vendas/{venda.json['id_venda']}/recibo").status_code, 403)
+        self.assertEqual(outro.get(f"/api/vendas/{venda.json['id_venda']}/recibo/imprimir").status_code, 403)
+        self.assertEqual(outro.patch("/api/usuarios/3/perfil", json={"perfil": "GERENTE"}).status_code, 403)
+        dono = self.cliente(OPERADOR)
+        with dono.session_transaction() as sessao:
+            sessao.update({"id_usuario": 2, "perfil": "OPERADOR"})
+        self.assertEqual(dono.patch("/api/usuarios/2/perfil", json={"perfil": "GERENTE"}).status_code, 403)
+        gerente = self.cliente(GERENTE)
+        self.assertEqual(gerente.patch("/api/usuarios/1/perfil", json={"perfil": "OPERADOR"}).status_code, 409)
+
+    def test_validacao_inteiro_estrito_e_movimentacao_digital(self):
+        cliente = self.cliente()
+        self.assertEqual(cliente.post("/api/vendas", json={
+            "id_cliente": 1.5, "itens": [{"id_produto": 1, "quantidade": 1}],
+        }).status_code, 400)
+        self.assertEqual(cliente.post("/api/vendas", json={
+            "id_cliente": 1, "itens": [{"id_produto": 1, "quantidade": 1.5}],
+        }).status_code, 400)
+        self.assertEqual(cliente.post("/api/movimentacoes", json={
+            "produto_id": 4, "tipo": "SAIDA", "quantidade": 1,
+        }).status_code, 409)
 
     def test_livro_razao_join_e_filtro(self):
         self.cliente().post("/api/vendas", json={

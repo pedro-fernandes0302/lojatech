@@ -9,7 +9,10 @@ bp = Blueprint("nova_movimentacao", __name__)
 def nova_movimentacao():
     conn = get_db()
     try:
-        produtos = conn.execute("SELECT id_produto AS id, sku, nome_produto AS nome, estoque_atual FROM produtos ORDER BY nome").fetchall()
+        produtos = conn.execute(
+            "SELECT id_produto AS id, sku, nome_produto AS nome, estoque_atual "
+            "FROM produtos WHERE tipo != 'Software' ORDER BY nome"
+        ).fetchall()
         if request.method == "GET":
             return render_template("movimentacao_form.html", produtos=produtos, dados={})
         dados = {campo: request.form.get(campo, "") for campo in ("produto_id", "tipo", "quantidade", "observacao")}
@@ -26,10 +29,16 @@ def nova_movimentacao():
             flash("Tipo de movimentação inválido.", "danger")
             return render_template("movimentacao_form.html", produtos=produtos, dados=dados), 400
 
-        produto = conn.execute("SELECT estoque_atual, estoque_minimo FROM produtos WHERE id_produto = ?", (produto_id,)).fetchone()
+        produto = conn.execute(
+            "SELECT estoque_atual, estoque_minimo, tipo FROM produtos WHERE id_produto = ?",
+            (produto_id,),
+        ).fetchone()
         if not produto:
             flash("Produto não encontrado.", "danger")
             return render_template("movimentacao_form.html", produtos=produtos, dados=dados), 404
+        if produto["tipo"] == "Software":
+            flash("Licenças digitais só movimentam por venda ou cadastro de chaves.", "danger")
+            return render_template("movimentacao_form.html", produtos=produtos, dados=dados), 409
         if dados["tipo"] == "SAIDA" and quantidade > produto["estoque_atual"]:
             conn.rollback()
             flash(f"Estoque insuficiente: saldo atual {produto['estoque_atual']}, solicitado {quantidade}", "danger")

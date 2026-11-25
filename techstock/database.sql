@@ -103,6 +103,24 @@ BEFORE DELETE ON movimentacoes
 BEGIN
     SELECT RAISE(ABORT, 'Livro-Razão é imutável');
 END;
+CREATE TRIGGER itens_venda_sem_update BEFORE UPDATE ON itens_venda
+BEGIN
+    SELECT RAISE(ABORT, 'Item de venda é imutável');
+END;
+CREATE TRIGGER itens_venda_sem_delete BEFORE DELETE ON itens_venda
+BEGIN
+    SELECT RAISE(ABORT, 'Item de venda é imutável');
+END;
+CREATE TRIGGER vendas_sem_delete BEFORE DELETE ON vendas
+BEGIN
+    SELECT RAISE(ABORT, 'Venda não pode ser apagada');
+END;
+CREATE TRIGGER vendas_total_imutavel
+BEFORE UPDATE OF valor_total_centavos ON vendas
+WHEN OLD.valor_total_centavos <> 0
+BEGIN
+    SELECT RAISE(ABORT, 'Total da venda é imutável');
+END;
 
 INSERT INTO categoria (nome_categoria, descricao) VALUES
 ('Processadores', 'Componentes de processamento'),

@@ -1,5 +1,7 @@
 from flask import jsonify, redirect, request, session, url_for
 
+from db import get_db
+
 GERENTES = {"GERENTE"}
 OPERADORES = {"OPERADOR", "GERENTE"}
 
@@ -50,7 +52,21 @@ def install_permissions(app):
         endpoint = request.endpoint
         if endpoint is None or endpoint == "static" or endpoint in PUBLIC_ENDPOINTS:
             return None
-        perfil = session.get("perfil")
+        # Consultar o perfil atual invalida permissões antigas de sessões já abertas.
+        perfil = None
+        if session.get("id_usuario"):
+            conn = get_db()
+            try:
+                usuario = conn.execute(
+                    "SELECT perfil FROM usuarios WHERE id_usuario = ?",
+                    (session["id_usuario"],),
+                ).fetchone()
+            finally:
+                conn.close()
+            if usuario:
+                perfil = session["perfil"] = usuario["perfil"]
+            else:
+                session.clear()
         # Sem autenticação redirecionamos telas e retornamos 401 na API; cada endpoint exige papel.
         if not perfil:
             if request.path.startswith("/api/"):

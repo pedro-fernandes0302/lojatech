@@ -10,7 +10,11 @@ EXPECTED_TABLES = {
     "usuarios", "categoria", "fornecedor", "produtos", "movimentacoes",
     "ativos_digitais", "clientes", "vendas", "itens_venda",
 }
-EXPECTED_TRIGGERS = {"movimentacoes_sem_update", "movimentacoes_sem_delete"}
+EXPECTED_TRIGGERS = {
+    "movimentacoes_sem_update", "movimentacoes_sem_delete",
+    "itens_venda_sem_update", "itens_venda_sem_delete",
+    "vendas_sem_delete", "vendas_total_imutavel",
+}
 
 
 def get_db():
@@ -84,6 +88,11 @@ def ensure_database():
     finally:
         conn.close()
     if precisa_inicializar:
+        if EXPECTED_TABLES & tabelas:
+            raise RuntimeError(
+                "Banco existente está incompleto. Para evitar perda de dados, nada foi apagado; "
+                "faça backup e remova o arquivo do banco para recriá-lo do zero."
+            )
         init_db()
     else:
         conn = get_db()
