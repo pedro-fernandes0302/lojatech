@@ -1,8 +1,7 @@
-__pycache__/
-*.py[cod]
+﻿__pycache__/
+*.pyc
+*.db
+.techstock_secret_key
+.venv/
 node_modules/
 dist/
-*.db
-*.db-shm
-*.db-wal
-.techstock_secret_key
