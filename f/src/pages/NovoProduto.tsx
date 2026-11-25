@@ -7,7 +7,7 @@ import type { ProdutoOpcoes } from '../types'
 
 const inicial={sku:'',nome:'',fabricante:'',tipo:'Hardware',especificacao:'',modalidade_licenca:'',preco:'',estoque_atual:'0',estoque_minimo:'0',localizacao:'',categoria_id:'',fornecedor_id:''}
 export default function NovoProduto(){
- const [opcoes,setOpcoes]=useState<ProdutoOpcoes>({categorias:[],fornecedores:[],produtos:[]}); const [dados,setDados]=useState(inicial);const [mensagem,setMensagem]=useState('');const [erro,setErro]=useState('');const navegar=useNavigate()
+ const [opcoes,setOpcoes]=useState<ProdutoOpcoes>({categorias:[],fornecedores:[],produtos:[],clientes:[]}); const [dados,setDados]=useState(inicial);const [mensagem,setMensagem]=useState('');const [erro,setErro]=useState('');const navegar=useNavigate()
  useEffect(()=>{api.produtos.opcoes().then(setOpcoes).catch(e=>setErro(e.message))},[])
  const alterar=(e:ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>)=>setDados({...dados,[e.target.name]:e.target.value})
  async function enviar(e:FormEvent){e.preventDefault();setErro('');try{const r=await api.produtos.criar({...dados,categoria_id:Number(dados.categoria_id),fornecedor_id:Number(dados.fornecedor_id)});setMensagem(r.mensagem);setTimeout(()=>navegar('/'),900)}catch(e){setErro((e as Error).message)}}
