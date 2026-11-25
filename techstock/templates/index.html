@@ -1,30 +1,28 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}Dashboard - TechStock Manager{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <div><h1 class="h3 mb-0">InventÃ¡rio</h1><p class="text-muted mb-0">Produtos, estoque e fornecedores</p></div>
-  <a href="{{ url_for('novo_produto.novo_produto') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Novo produto</a>
+  <div><h1 class="h3 mb-0">Catálogo consolidado</h1><p class="text-muted mb-0">Hardware físico e licenças digitais</p></div>
+  {% if session.get('perfil') == 'GERENTE' %}<a href="{{ url_for('novo_produto.novo_produto') }}" class="btn btn-primary">＋ Novo produto</a>{% endif %}
 </div>
 <div class="card shadow-sm border-0">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
-      <thead class="table-dark"><tr><th>SKU / Produto</th><th>Fabricante</th><th>Categoria</th><th>Fornecedor</th><th>PreÃ§o</th><th>Saldo / MÃ­nimo</th><th>LocalizaÃ§Ã£o / LicenÃ§a</th><th></th></tr></thead>
+      <thead class="table-dark"><tr><th>SKU / Produto</th><th>Tipo</th><th>Categoria</th><th>Fornecedor</th><th>Preço</th><th>Saldo / Mínimo</th><th>Ativos disponíveis</th><th>Status</th>{% if session.get('perfil') == 'GERENTE' %}<th></th>{% endif %}</tr></thead>
       <tbody>
       {% for produto in produtos %}
-      <tr{% if produto.estoque_atual <= produto.estoque_minimo %} class="table-danger"{% endif %}>
+      <tr{% if produto.estoque_atual <= produto.estoque_minimo %} class="table-warning"{% endif %}>
         <td><strong>{{ produto.sku }}</strong><br><span>{{ produto.nome }}</span></td>
-        <td>{{ produto.fabricante }}</td><td>{{ produto.categoria }}</td><td>{{ produto.fornecedor }}</td>
+        <td><span class="badge bg-secondary">{{ produto.tipo_catalogo }}</span></td><td>{{ produto.categoria }}</td><td>{{ produto.fornecedor }}</td>
         <td>{{ produto.preco|brl }}</td>
-        <td><strong>{{ produto.estoque_atual }}</strong> / {{ produto.estoque_minimo }}
-          {% if produto.estoque_atual <= produto.estoque_minimo %}<div><span class="badge bg-danger mt-1">Risco de Ruptura / ReposiÃ§Ã£o NecessÃ¡ria</span></div>{% endif %}
-        </td>
-        <td>{{ produto.localizacao }}{% if produto.tipo == 'Software' and produto.modalidade_licenca %}<br><small class="text-muted">LicenÃ§a: {{ produto.modalidade_licenca }}</small>{% elif produto.modalidade_licenca %}<br><small class="text-muted">LicenÃ§a: {{ produto.modalidade_licenca }}</small>{% endif %}</td>
-        <td class="text-end"><form method="post" action="{{ url_for('excluir_produto.excluir_produto', id=produto.id) }}" onsubmit="return confirm('Descontinuar este produto?')"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Descontinuar</button></form></td>
+        <td><strong>{{ produto.estoque_atual }}</strong> / {{ produto.estoque_minimo }}</td>
+        <td>{% if produto.tipo == 'Software' %}{{ produto.chaves_disponiveis }} chave(s){% else %}{{ produto.quantidade_fisica }} unidade(s) física(s){% endif %}</td>
+        <td>{% if produto.estoque_atual <= produto.estoque_minimo %}<span class="badge bg-danger">ALERTA · Reposição</span>{% else %}<span class="badge bg-success">Normal</span>{% endif %}</td>
+        {% if session.get('perfil') == 'GERENTE' %}<td class="text-end"><form method="post" action="{{ url_for('excluir_produto.excluir_produto', id=produto.id) }}" onsubmit="return confirm('Descontinuar este produto?')"><button class="btn btn-sm btn-outline-danger">Descontinuar</button></form></td>{% endif %}
       </tr>
-      {% else %}<tr><td colspan="8" class="text-center text-muted py-4">Nenhum produto cadastrado.</td></tr>{% endfor %}
+      {% else %}<tr><td colspan="9" class="text-center text-muted py-4">Nenhum produto cadastrado.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 {% endblock %}
-

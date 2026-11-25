@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Entrar - TechStore</title></head>
+<body>
+  <main>
+    <h1>TechStore</h1>
+    {% if erro %}<p role="alert">{{ erro }}</p>{% endif %}
+    <form method="post">
+      <label>E-mail <input type="email" name="email" required></label>
+      <label>Senha <input type="password" name="senha" required></label>
+      <button type="submit">Entrar</button>
+    </form>
+    <a href="{{ url_for('auth.cadastro') }}">Criar conta de operador</a>
+  </main>
+</body>
+</html>

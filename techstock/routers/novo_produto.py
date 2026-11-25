@@ -45,7 +45,8 @@ def novo_produto():
                 (sku, nome_produto, fabricante, tipo, especificacao, modalidade, preco,
                  estoque_atual, estoque_minimo, localizacao, id_categoria, id_fornecedor)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (dados["sku"].strip(), dados["nome"].strip(), dados["fabricante"].strip(), dados["tipo"],
+            """,             (dados["sku"].strip(), dados["nome"].strip(), dados["fabricante"].strip(),
+             "Periferico" if dados["tipo"] == "Periférico" else dados["tipo"],
                   dados["especificacao"].strip() or None, dados["modalidade_licenca"] or None, preco, estoque,
                   minimo, dados["localizacao"].strip(), dados["categoria_id"], dados["fornecedor_id"]))
             conn.commit()

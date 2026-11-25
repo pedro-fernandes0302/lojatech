@@ -1,4 +1,5 @@
 ﻿import os
+import secrets
 from flask import Flask
 from db import ensure_database
 from routers.dashboard import bp as dashboard_bp
@@ -12,9 +13,19 @@ from routers.fornecedores import bp as fornecedores_bp
 from routers.excluir_fornecedor import bp as excluir_fornecedor_bp
 from routers.errors import bp as errors_bp
 from routers.api import bp as api_bp
+from routers.auth import bp as auth_bp
+from permissions import install_permissions
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("TECHSTOCK_SECRET_KEY", "techstock-desenvolvimento-local")
+secret_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".techstock_secret_key")
+secret_key = os.environ.get("TECHSTOCK_SECRET_KEY")
+if not secret_key:
+    if not os.path.exists(secret_path):
+        with open(secret_path, "w", encoding="utf-8") as secret_file:
+            secret_file.write(secrets.token_hex(32))
+    with open(secret_path, "r", encoding="utf-8") as secret_file:
+        secret_key = secret_file.read().strip()
+app.secret_key = secret_key
 ensure_database()
 
 @app.template_filter("brl")
@@ -37,6 +48,8 @@ app.register_blueprint(fornecedores_bp)
 app.register_blueprint(excluir_fornecedor_bp)
 app.register_blueprint(errors_bp)
 app.register_blueprint(api_bp)
+app.register_blueprint(auth_bp)
+install_permissions(app)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=os.environ.get("FLASK_DEBUG", "").lower() in {"1", "true", "yes"})

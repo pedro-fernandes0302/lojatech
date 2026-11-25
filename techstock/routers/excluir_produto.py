@@ -1,5 +1,5 @@
 import sqlite3
-from flask import Blueprint, abort, flash, redirect, url_for
+from flask import Blueprint, abort, flash, make_response, redirect, url_for
 from db import get_db
 
 bp = Blueprint("excluir_produto", __name__)
@@ -9,7 +9,7 @@ bp = Blueprint("excluir_produto", __name__)
 def excluir_produto(id):
     conn = get_db()
     try:
-        if not conn.execute("SELECT id FROM produtos WHERE id_produto = ?", (id,)).fetchone():
+        if not conn.execute("SELECT id_produto FROM produtos WHERE id_produto = ?", (id,)).fetchone():
             abort(404)
         try:
             conn.execute("DELETE FROM produtos WHERE id_produto = ?", (id,))
@@ -17,7 +17,7 @@ def excluir_produto(id):
             flash("Produto descontinuado com sucesso.", "success")
         except sqlite3.IntegrityError:
             conn.rollback()
-            flash("O item não pode ser removido pois possui histórico de movimentações.", "danger")
+            return make_response("O produto não pode ser excluído: há histórico, itens de venda ou licenças vinculadas.", 409)
         return redirect(url_for("dashboard.dashboard"))
     finally:
         conn.close()

@@ -15,12 +15,15 @@
     <div class="collapse navbar-collapse" id="menuPrincipal">
       <ul class="navbar-nav ms-auto">
         <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard.dashboard') }}">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('novo_produto.novo_produto') }}">Novo Produto</a></li>
+        {% if session.get('perfil') == 'GERENTE' %}<li class="nav-item"><a class="nav-link" href="{{ url_for('novo_produto.novo_produto') }}">Novo Produto</a></li>{% endif %}
         <li class="nav-item"><a class="nav-link" href="{{ url_for('nova_movimentacao.nova_movimentacao') }}">Movimentar Estoque</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('historico_movimentacoes.historico_movimentacoes') }}">HistÃ³rico</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('historico_movimentacoes.historico_movimentacoes') }}">Histórico</a></li>
+        {% if session.get('perfil') == 'GERENTE' %}
         <li class="nav-item"><a class="nav-link" href="{{ url_for('categorias.categorias') }}">Categorias</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('fornecedores.fornecedores') }}">Fornecedores</a></li>
+        {% endif %}
       </ul>
+      {% if session.get('id_usuario') %}<form method="post" action="{{ url_for('auth.logout') }}"><button class="btn btn-outline-light ms-3">Sair</button></form>{% endif %}
     </div>
   </div>
 </nav>
@@ -41,4 +44,3 @@
 {% block scripts %}{% endblock %}
 </body>
 </html>
-

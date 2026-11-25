@@ -1,5 +1,5 @@
 import sqlite3
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from db import get_db
 
 bp = Blueprint("nova_movimentacao", __name__)
@@ -37,8 +37,9 @@ def nova_movimentacao():
         try:
             incremento = quantidade if dados["tipo"] == "ENTRADA" else -quantidade
             conn.execute("UPDATE produtos SET estoque_atual = estoque_atual + ? WHERE id_produto = ?", (incremento, produto_id))
-            conn.execute("INSERT INTO movimentacoes (id_produto, tipo, quantidade, observacao) VALUES (?, ?, ?, ?)",
-                         (produto_id, "Entrada" if dados["tipo"] == "ENTRADA" else "Saida", quantidade, dados["observacao"].strip() or None))
+            conn.execute("INSERT INTO movimentacoes (id_produto, id_usuario, tipo, quantidade, observacao) VALUES (?, ?, ?, ?, ?)",
+                         (produto_id, session["id_usuario"], "ENTRADA" if dados["tipo"] == "ENTRADA" else "SAIDA",
+                          quantidade, dados["observacao"].strip() or None))
             conn.commit()
             novo_saldo = conn.execute("SELECT estoque_atual, estoque_minimo FROM produtos WHERE id_produto = ?", (produto_id,)).fetchone()
             if novo_saldo["estoque_atual"] <= novo_saldo["estoque_minimo"]:

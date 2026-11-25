@@ -15,8 +15,8 @@ def fornecedores():
             cnpj = normalizar_cnpj(request.form.get("cnpj", ""))
             telefone = request.form.get("telefone", "").strip()
             email = request.form.get("email", "").strip()
-            if not razao_social or len(cnpj) != 14:
-                flash("Informe a razão social e um CNPJ válido com 14 dígitos.", "danger")
+            if not razao_social or len(cnpj) != 14 or not email:
+                flash("Informe razão social, CNPJ válido e e-mail.", "danger")
             else:
                 try:
                     conn.execute("INSERT INTO fornecedor (razao_social, cnpj, telefone, email) VALUES (?, ?, ?, ?)",

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recibo {{ recibo.numero_pedido }} - TechStore</title>
+  <style>
+    body{font-family:Arial,sans-serif;max-width:900px;margin:2rem auto;color:#172033}
+    table{width:100%;border-collapse:collapse;margin:1.5rem 0}
+    th,td{border-bottom:1px solid #ddd;padding:.7rem;text-align:left}
+    .total{text-align:right;font-size:1.2rem}
+    @media print{button{display:none}body{margin:0 auto}}
+  </style>
+</head>
+<body>
+  <button onclick="window.print()">Imprimir recibo</button>
+  <h1>TechStore — Recibo de Faturamento B2B</h1>
+  <p><strong>Pedido:</strong> {{ recibo.numero_pedido }} · <strong>Data/hora:</strong> {{ recibo.data_venda }}</p>
+  <p><strong>Cliente:</strong> {{ recibo.cliente_nome }} · <strong>CNPJ:</strong> {{ recibo.cliente_cnpj }}</p>
+  <p><strong>E-mail:</strong> {{ recibo.cliente_email }}</p>
+  <table>
+    <thead><tr><th>SKU</th><th>Produto</th><th>Quantidade</th><th>Preço unitário</th><th>Subtotal</th></tr></thead>
+    <tbody>{% for item in recibo.itens %}
+      <tr>
+        <td>{{ item.sku }}</td><td>{{ item.produto }}</td><td>{{ item.quantidade }}</td>
+        <td>R$ {{ '%.2f'|format(item.preco_unitario_centavos / 100) }}</td>
+        <td>R$ {{ '%.2f'|format(item.subtotal_centavos / 100) }}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table>
+  <p class="total"><strong>Total: R$ {{ '%.2f'|format(recibo.valor_total_centavos / 100) }}</strong></p>
+  <p><strong>Operador:</strong> {{ recibo.operador }} ({{ recibo.operador_email }})</p>
+</body>
+</html>
