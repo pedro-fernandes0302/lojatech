@@ -1,13 +1,15 @@
-﻿# TechStock Manager
+# TechStore B2B — TechStock
 
-Sistema web de gestÃ£o de inventÃ¡rio para a TechStore InformÃ¡tica, desenvolvido com Flask, SQLite e Bootstrap 5. Gerencia produtos fÃ­sicos, licenÃ§as de software, categorias, fornecedores e movimentaÃ§Ãµes de estoque.
+Sistema de inventário e faturamento B2B com Flask, SQLite e front-end React/TypeScript.
 
-## PrÃ©-requisitos
+## Pré-requisitos
 
-- Python 3.10 ou superior
-- pip
+- Python 3.10 ou superior e pip
+- Node.js 20.19+ ou 22.12+ e npm (compatíveis com Vite 8)
 
-## InstalaÃ§Ã£o e execuÃ§Ã£o
+## Instalação e execução
+
+Terminal 1 — backend:
 
 ```powershell
 cd techstock
@@ -17,66 +19,86 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-TambÃ©m Ã© possÃ­vel iniciar com o Flask:
+Na primeira inicialização, o SQLite e os dados de demonstração são criados. Para
+usar uma chave de sessão fixa em produção, configure `TECHSTOCK_SECRET_KEY`.
+Sem essa variável, uma chave aleatória é persistida em
+`.techstock_secret_key` (ignorada pelo Git). O modo debug só é habilitado com
+`FLASK_DEBUG=true`.
+
+Terminal 2 — front-end:
 
 ```powershell
-flask --app app run --debug
+cd f
+npm install
+npm run dev
 ```
 
-Acesse http://127.0.0.1:5000.
+O Vite encaminha `/api` para `http://127.0.0.1:5000`. Abra o endereço exibido
+pelo Vite.
 
-## Organização das rotas
+## Usuários de demonstração
 
-As rotas estão separadas na pasta `routers`. O arquivo `app.py` cria a aplicação e registra os Blueprints.
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Gerente | `gerente@techstore.com` | `demo-techstore-2026` |
+| Operador | `operador@techstore.com` | `operador-techstore-2026` |
 
-## Banco de dados
+As senhas são armazenadas no banco como hashes Werkzeug; o SQL nunca contém
+senhas. O cadastro público cria exclusivamente usuários `OPERADOR`. Somente um
+Gerente pode promover ou rebaixar perfis pela API.
 
-Na primeira execuÃ§Ã£o, `techstock.db` Ã© criado automaticamente se nÃ£o existir. Para recriar manualmente, primeiro exclua o arquivo `techstock.db` e execute `python app.py` ou `python -c "from db import init_db; init_db()"`.
+## Roteiro da demonstração em 6 passos
+
+1. Abrir o catálogo e demonstrar tipos Hardware Físico/Licença Digital e badges
+   de `ALERTA` quando o saldo atinge o ponto de reposição.
+2. Entrar como Operador e depois Gerente, exibindo as diferenças de acesso
+   entre os perfis.
+3. Como Operador, registrar pelo PDV uma venda com três produtos para um
+   cliente B2B.
+4. Conferir o Recibo de Faturamento B2B persistido e abrir a versão imprimível.
+5. Como Gerente, filtrar e conferir as três saídas e os relacionamentos no
+   Livro-Razão.
+6. Tentar vender duas unidades de `Mouse USB`, cujo saldo de demonstração é
+   uma unidade; a resposta deve ser 409 e nenhum saldo, venda, item ou
+   movimentação pode mudar. Para executar e imprimir o antes/depois:
+
+   ```powershell
+   cd techstock
+   python scripts/demo_rollback.py
+   ```
+
+## Modelo de dados e integridade
+
+As tabelas base são `usuarios`, `categoria`, `fornecedor`, `produtos`,
+`ativos_digitais`, `clientes`, `vendas`, `itens_venda` e `movimentacoes`.
+`estoque_fisico` é uma VIEW sobre `produtos.estoque_atual`, para não duplicar
+saldo; ativos digitais permanecem registrados individualmente e são associados
+à venda quando licenciados. CNPJ, e-mail, SKU e número do pedido têm restrições
+de unicidade; estoque, quantidades, preços e subtotais têm `CHECK`; FKs são
+ativadas em cada conexão.
+
+Venda é executada em `BEGIN IMMEDIATE`: o bloqueio de escrita serializa as
+baixas concorrentes, e qualquer falta de saldo ou erro antes do `COMMIT`
+provoca `ROLLBACK` explícito do cabeçalho, itens, estoque, licenças e
+movimentações. Valores de venda são centavos inteiros. `movimentacoes` é um
+Livro-Razão append-only, protegido por triggers de UPDATE e DELETE.
+
+## Testes
+
+Rode a suíte a partir do diretório `techstock`:
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+Os testes criam e isolam bancos temporários; não apagam nem alteram o arquivo
+local `techstock.db`.
 
 ## Rotas principais
 
-- `/` â€” dashboard de estoque;
-- `/produtos/novo` â€” cadastro de produto;
-- `/produtos/<id>/excluir` â€” descontinuaÃ§Ã£o de produto (POST);
-- `/movimentacoes/nova` â€” entrada ou saÃ­da de estoque;
-- `/movimentacoes` â€” histÃ³rico;
-- `/categorias` â€” lista e cadastro de categorias;
-- `/categorias/<id>/excluir` â€” exclusÃ£o de categoria (POST);
-- `/fornecedores` â€” lista e cadastro de fornecedores;
-- `/fornecedores/<id>/excluir` â€” exclusÃ£o de fornecedor (POST).
-
-## Estrutura das tabelas
-
-- **categorias:** identificador Ãºnico e nome Ãºnico;
-- **fornecedores:** razÃ£o social, CNPJ Ãºnico, telefone e e-mail;
-- **produtos:** SKU Ãºnico, fabricante, tipo, licenÃ§a opcional, preÃ§o, estoques, localizaÃ§Ã£o e vÃ­nculos obrigatÃ³rios com categoria e fornecedor;
-- **movimentacoes:** produto, tipo ENTRADA/SAIDA, quantidade positiva, data/hora e observaÃ§Ã£o.
-
-A integridade referencial Ã© ativada em cada conexÃ£o com `PRAGMA foreign_keys = ON`. Categorias, fornecedores e produtos vinculados nÃ£o podem ser excluÃ­dos enquanto houver dependÃªncias. Entradas e saÃ­das sÃ£o aplicadas no mesmo estoque em uma Ãºnica transaÃ§Ã£o. SaÃ­das maiores que o saldo sÃ£o recusadas sem alteraÃ§Ã£o de dados.
-
-## Regras de negÃ³cio
-
-- PreÃ§o deve ser maior que zero.
-- Estoques nÃ£o podem ser negativos.
-- Tipos aceitos: Hardware, Software e PerifÃ©rico.
-- Modalidades aceitas: Assinatura Anual, PerpÃ©tua/ESD e OEM.
-- Produto Ã© destacado quando `estoque_atual <= estoque_minimo`.
-- Toda movimentaÃ§Ã£o deve ter quantidade inteira positiva.
-
-## Reset completo
-
-Para repor categorias, fornecedores, produtos e movimentaÃ§Ãµes de demonstraÃ§Ã£o:
-
-```powershell
-Remove-Item -Force .\techstock.db -ErrorAction SilentlyContinue
-python app.py
-```
-
-Alternativamente, dentro do diretÃ³rio do projeto:
-
-```powershell
-python -c "from db import init_db; init_db()"
-```
-
-A execuÃ§Ã£o automÃ¡tica recria o banco na inicializaÃ§Ã£o e pode ser interrompida com Ctrl+C.
-
+- `POST /api/login`, `POST /api/cadastro` e `POST /api/logout`
+- `GET /api/dashboard`, `GET /api/produtos/opcoes` e `GET /api/clientes`
+- `POST /api/vendas` e `GET /api/vendas/<id>/recibo`
+- `GET /api/vendas/<id>/recibo/imprimir`
+- `GET /api/livro-razao?venda=<id>`
+- `PATCH /api/usuarios/<id>/perfil` (somente Gerente)
